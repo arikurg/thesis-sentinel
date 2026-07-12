@@ -60,7 +60,12 @@ def _openai_compatible(
     messages: list[dict], api_key: str, *, max_tokens: int, timeout: float
 ) -> str:
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-    model = os.environ.get("SENTINEL_LLM_MODEL", "gpt-4o-mini")
+    # On Maritime, HERMES_INFERENCE_MODEL names the model its LLM proxy serves.
+    model = (
+        os.environ.get("SENTINEL_LLM_MODEL")
+        or os.environ.get("HERMES_INFERENCE_MODEL")
+        or "gpt-4o-mini"
+    )
     payload = json.dumps(
         {"model": model, "messages": messages, "max_tokens": max_tokens}
     ).encode()
