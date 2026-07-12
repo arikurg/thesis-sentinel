@@ -67,24 +67,41 @@ maritime env set thesis-sentinel SENTINEL_OWNER_EMAIL="you@email.com" --no-secre
 maritime deploy thesis-sentinel --source template --wait
 ```
 
-On the agent:
+On the agent (via `maritime exec thesis-sentinel -- sh -c "..."`). Hard-won
+facts from the real deploy: `HERMES_HOME=/opt/data` (NOT `/opt/data/.hermes`),
+so hermes reads `/opt/data/{plugins,scripts,config.yaml}`; the image's
+site-packages don't survive restarts, so pip deps must be vendored onto the
+volume; system python3 has no pip (use `uv`); and user plugins are opt-in via
+`plugins.enabled` in config.yaml — edit it while the gateway is stopped
+(`/command/s6-svc -r /run/service/main-hermes` restarts it in place), because
+the gateway saves its in-memory config on shutdown and will clobber a live
+edit.
 
 ```bash
-# 1. App code lives on the persistent volume
-cp -r thesis-sentinel /opt/data/app && pip install -e /opt/data/app
+# 1. App code lives on the persistent volume (no pip install -e — it won't survive)
+#    Get the tree to /opt/data/app (tar over exec, or git clone if you have a remote)
 
-# 2. Inbound command router
-cp -r /opt/data/app/hermes_plugin/thesis-sentinel ~/.hermes/plugins/
+# 2. Vendored deps for the no-agent cron scripts (system python3 lacks inkbox)
+uv pip install --python "$(command -v python3)" --target /opt/data/app/vendor inkbox
 
-# 3. Seed the watchlist (or just text `watch NVDA` once live)
+# 3. Inbound command router (note: /opt/data/plugins, not ~/.hermes/plugins)
+cp -r /opt/data/app/hermes_plugin/thesis-sentinel /opt/data/plugins/
+# then add to /opt/data/config.yaml (gateway stopped — see note above):
+#   plugins:
+#     enabled:
+#       - thesis-sentinel
+
+# 4. Seed the watchlist (or just text `watch NVDA` once live)
 cp /opt/data/app/watchlist.example.json /opt/data/watchlist.json
 
-# 4. Polling loop: every 30 min, weekdays, market hours + evening sweep (ET)
-hermes cron create "*/30 13-23 * * 1-5" --script /opt/data/app/scripts/run_poll.py \
-    --no-agent --name thesis-sentinel-poll
+# 5. Polling loop: every 30 min, weekdays, market hours + evening sweep (UTC cron)
+cp /opt/data/app/scripts/run_poll.py /opt/data/scripts/
+HERMES_HOME=/opt/data /opt/hermes/bin/hermes cron create "*/30 13-23 * * 1-5" \
+    --script run_poll.py --no-agent --name thesis-sentinel-poll --deliver local
 # Optional digest flush at ~6pm ET if SENTINEL_DIGEST=1
-hermes cron create "0 22 * * 1-5" --script /opt/data/app/scripts/run_digest.py \
-    --no-agent --name thesis-sentinel-digest
+cp /opt/data/app/scripts/run_digest.py /opt/data/scripts/
+HERMES_HOME=/opt/data /opt/hermes/bin/hermes cron create "0 22 * * 1-5" \
+    --script run_digest.py --no-agent --name thesis-sentinel-digest --deliver local
 ```
 
 Then in the Maritime dashboard confirm the identity panel shows a phone
