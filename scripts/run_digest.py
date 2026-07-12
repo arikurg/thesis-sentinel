@@ -11,7 +11,9 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, os.environ.get("SENTINEL_APP_DIR", "/opt/data/app"))
+_APP = os.environ.get("SENTINEL_APP_DIR", "/opt/data/app")
+sys.path.insert(0, os.path.join(_APP, "vendor"))
+sys.path.insert(0, _APP)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import logging
