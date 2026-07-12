@@ -52,12 +52,19 @@ tests/               48 tests, all fixture-backed (no network, no LLM, no SMS)
 ## Deploy (Maritime)
 
 ```bash
+# BEFORE creating: the Inkbox org must have a free identity slot, or the
+# agent is created with NO phone/email ("Identity provisioning skipped" in
+# the logs). Identities are provisioned only at creation — if that happens,
+# free a slot (or upgrade) at inkbox.ai/console and delete + recreate.
 maritime create thesis-sentinel --template hermes_identity
 maritime env set thesis-sentinel SEC_USER_AGENT="ThesisSentinel YourName you@email.com" --no-secret
 maritime env set thesis-sentinel SENTINEL_OWNER_PHONE="+1..." --no-secret
 maritime env set thesis-sentinel SENTINEL_OWNER_EMAIL="you@email.com" --no-secret
 # Leave OPENAI_API_KEY unset to bill LLM calls to Maritime credits.
-maritime deploy thesis-sentinel
+# create already deploys the template. If you redeploy later, ALWAYS pin the
+# source: bare `maritime deploy` means "ship this directory as a custom docker
+# image" and breaks the agent (pull access denied for maritime-agent-<id>).
+maritime deploy thesis-sentinel --source template --wait
 ```
 
 On the agent:
