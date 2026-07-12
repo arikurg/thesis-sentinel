@@ -10,9 +10,13 @@ Runs the deterministic polling loop (sentinel/poll.py). Works even when the
 sentinel package isn't pip-installed by adding the app dir to sys.path.
 """
 
+import os
 import sys
 from pathlib import Path
 
+# Hermes cron copies scripts into ~/.hermes/scripts/, so the app dir can't be
+# derived from __file__ there; prefer the env var / Maritime default.
+sys.path.insert(0, os.environ.get("SENTINEL_APP_DIR", "/opt/data/app"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sentinel.poll import main

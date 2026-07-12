@@ -7,9 +7,11 @@ Only useful with SENTINEL_DIGEST=1. Register at market close:
         --no-agent --name thesis-sentinel-digest
 """
 
+import os
 import sys
 from pathlib import Path
 
+sys.path.insert(0, os.environ.get("SENTINEL_APP_DIR", "/opt/data/app"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import logging
