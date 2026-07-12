@@ -1,0 +1,18 @@
+# local env / venv
+.venv/
+.env
+*.env
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# runtime state (never commit live watchlist/state — may hold personal contact info)
+/opt-data/
+state.json
+watchlist.json
+company_tickers.json
+llm_failures.log
+digest_pending.json

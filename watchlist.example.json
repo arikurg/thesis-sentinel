@@ -1,0 +1,32 @@
+{
+ "tickers": [
+  {
+   "ticker": "NVDA",
+   "company": "NVIDIA Corp",
+   "cik": "0001045810",
+   "min_severity": "minor",
+   "pillars": [
+    {
+     "id": "moat",
+     "claim": "CUDA + software lock-in keeps switching costs high",
+     "breaks_if": "major customer ships a competitive non-CUDA stack at scale"
+    },
+    {
+     "id": "demand",
+     "claim": "Data-center GPU demand stays durable through 2027",
+     "breaks_if": "hyperscaler capex guidance cuts, order cancellations"
+    },
+    {
+     "id": "execution",
+     "claim": "Current management executes on margins and roadmap",
+     "breaks_if": "exec turnover, guidance miss, restatement"
+    },
+    {
+     "id": "supply",
+     "claim": "TSMC / CoWoS capacity is not the binding constraint",
+     "breaks_if": "supply warnings, allocation shortfalls"
+    }
+   ]
+  }
+ ]
+}

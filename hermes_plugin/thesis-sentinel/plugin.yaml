@@ -1,0 +1,13 @@
+name: thesis-sentinel
+version: "0.1.0"
+description: >
+  Deterministic inbound-SMS command router for the Thesis Sentinel EDGAR
+  watcher. Intercepts sentinel commands (watch/OK/cancel/list/mute/unmute/
+  status and bare tickers) via pre_gateway_dispatch, handles them in plain
+  Python, replies over SMS, and skips the agent turn. Non-command texts
+  fall through to normal Hermes dispatch.
+author: ariel
+requires_env:
+  - INKBOX_API_KEY
+  - INKBOX_IDENTITY
+  - SEC_USER_AGENT
