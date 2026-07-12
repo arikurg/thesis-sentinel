@@ -66,19 +66,30 @@ def _openai_compatible(
         or os.environ.get("HERMES_INFERENCE_MODEL")
         or "gpt-4o-mini"
     )
-    payload = json.dumps(
-        {"model": model, "messages": messages, "max_tokens": max_tokens}
-    ).encode()
-    req = urllib.request.Request(
-        f"{base_url}/chat/completions",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        body = json.load(resp)
+    def _post(token_param: str) -> dict:
+        payload = json.dumps(
+            {"model": model, "messages": messages, token_param: max_tokens}
+        ).encode()
+        req = urllib.request.Request(
+            f"{base_url}/chat/completions",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.load(resp)
+
+    # Newer models reject max_tokens in favor of max_completion_tokens;
+    # older OpenAI-compatible endpoints only know max_tokens. Try both.
+    try:
+        body = _post("max_completion_tokens")
+    except urllib.error.HTTPError as exc:
+        if exc.code == 400:
+            body = _post("max_tokens")
+        else:
+            raise
     return body["choices"][0]["message"]["content"] or ""
 
 
