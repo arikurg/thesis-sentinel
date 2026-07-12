@@ -20,6 +20,14 @@ Integration points (confirmed against inkbox-ai/hermes-agent source):
 from __future__ import annotations
 
 import logging
+import os
+import sys
+
+# The sentinel package lives on the persistent volume, not in the image's
+# site-packages (which are wiped on restart). Make it importable directly.
+_APP_DIR = os.environ.get("SENTINEL_APP_DIR", "/opt/data/app")
+if _APP_DIR not in sys.path and os.path.isdir(_APP_DIR):
+    sys.path.insert(0, _APP_DIR)
 
 logger = logging.getLogger("thesis-sentinel-plugin")
 
