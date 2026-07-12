@@ -123,7 +123,14 @@ def run_poll(
                 )
                 continue
 
-            alert(entry, filing, verdict)
+            try:
+                alert(entry, filing, verdict)
+            except Exception:
+                # A send failure must not abort the sweep: the accession is
+                # already recorded, and crashing here would lose the whole
+                # wake's in-memory state and re-alert everything next run.
+                logger.exception("%s: alert send failed for %s", ticker, filing["accession_number"])
+                continue
             state["sent_today"][ticker] = state["sent_today"].get(ticker, 0) + 1
             summary["alerted"] += 1
 
