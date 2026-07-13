@@ -35,6 +35,10 @@ def _atomic_write_json(path: Path, data: dict) -> None:
     try:
         with os.fdopen(fd, "w") as f:
             json.dump(data, f, indent=1)
+        # mkstemp creates 0600 files owned by the current user; the poll
+        # cron (uid 10000) and root exec shells both touch these files, so
+        # keep them world-readable or they brick each other.
+        os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     except BaseException:
         try:
