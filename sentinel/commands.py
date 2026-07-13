@@ -72,6 +72,12 @@ def handle_inbound(
     if first == "status" and not rest:
         return _status(state, watchlist)
 
+    if first == "pending" and not rest:
+        pending = state.get("pending_add")
+        if not pending:
+            return "Nothing pending."
+        return format_confirmation(pending["ticker"], pending["pillars"])
+
     # Free text while a draft is pending: edit instructions, one bounded call.
     if state.get("pending_add"):
         reply = _edit_add(text.strip(), state, draft_pillars)
