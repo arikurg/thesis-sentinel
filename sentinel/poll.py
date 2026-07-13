@@ -21,6 +21,29 @@ from . import config, edgar, state as state_mod
 logger = logging.getLogger("sentinel.poll")
 
 
+def backstop_items(filing: dict) -> list[str]:
+    """8-K item codes on this filing that are unconditionally material."""
+    codes = [c.strip() for c in (filing.get("items") or "").split(",") if c.strip()]
+    return [c for c in codes if c in config.ALWAYS_MATERIAL_ITEMS]
+
+
+def _backstop_verdict(filing: dict, codes: list[str]) -> dict:
+    """Minimal verdict when the LLM output was unusable but the item codes
+    demand an alert anyway (e.g. bankruptcy with a malformed model reply)."""
+    joined = ", ".join(codes)
+    return {
+        "happened": (
+            f"{filing['form']} filed with always-material item(s) {joined}; "
+            "LLM analysis unavailable — read the filing directly."
+        ),
+        "pillars_touched": [],
+        "severity": "material",
+        "confidence": "low",
+        "watch_next": "the filing itself; automated analysis failed",
+        "one_line_for_sms": f"Always-material 8-K item {joined} filed. Analysis failed; read the filing.",
+    }
+
+
 def in_quiet_hours(now: datetime | None = None) -> bool:
     now = now or datetime.now()
     start, end = config.QUIET_HOURS_START, config.QUIET_HOURS_END
@@ -103,17 +126,28 @@ def run_poll(
                 logger.exception("%s: body fetch failed for %s", ticker, filing["accession_number"])
                 continue
 
+            backstop = backstop_items(filing)
+
             verdict = analyze(entry, filing, filing_text)
             summary["analyzed"] += 1
             if verdict is None:
-                continue  # parse-failure guard: never alert on malformed output
+                # Parse-failure guard: never alert on malformed output —
+                # unless the item codes are unconditionally material, in
+                # which case a synthetic verdict says "read it yourself".
+                if not backstop:
+                    continue
+                verdict = _backstop_verdict(filing, backstop)
+                logger.warning(
+                    "%s: LLM output unusable but items %s force an alert",
+                    ticker, backstop,
+                )
 
             severity = verdict.get("severity", "")
             floor = entry.get("min_severity", config.DEFAULT_MIN_SEVERITY)
-            if config.severity_rank(severity) < config.severity_rank(floor):
+            if not backstop and config.severity_rank(severity) < config.severity_rank(floor):
                 continue
 
-            urgent = severity == "thesis_threatening"
+            urgent = severity == "thesis_threatening" or bool(backstop)
             cap_hit = state["sent_today"].get(ticker, 0) >= config.DAILY_CAP_PER_TICKER
             quiet = in_quiet_hours(now)
             if not urgent and (cap_hit or quiet):

@@ -44,6 +44,20 @@ MATERIAL_FORMS = tuple(
 # Truncation budget for filing text fed to the model (characters).
 FILING_TEXT_MAX_CHARS = int(os.environ.get("SENTINEL_FILING_MAX_CHARS", "40000"))
 
+# Deterministic backstop: 8-K item codes that alert regardless of the
+# LLM verdict or the ticker's severity floor. Kept to codes that are
+# unconditionally grave for any thesis:
+#   1.03 bankruptcy/receivership, 2.06 material impairment,
+#   3.01 delisting notice, 4.01 auditor change, 4.02 restatement warning.
+# (5.02 is deliberately excluded — it covers routine board changes too.)
+ALWAYS_MATERIAL_ITEMS = tuple(
+    c.strip()
+    for c in os.environ.get(
+        "SENTINEL_BACKSTOP_ITEMS", "1.03,2.06,3.01,4.01,4.02"
+    ).split(",")
+    if c.strip()
+)
+
 # --- severity model ----------------------------------------------------------
 
 SEVERITY_ORDER = ("negligible", "minor", "material", "thesis_threatening")
