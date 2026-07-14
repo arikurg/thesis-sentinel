@@ -78,6 +78,9 @@ def handle_inbound(
             return "Nothing pending."
         return format_confirmation(pending["ticker"], pending["pillars"])
 
+    if first == "show" and rest:
+        return _show(rest[0], watchlist)
+
     # Free text while a draft is pending: edit instructions, one bounded call.
     if state.get("pending_add"):
         reply = _edit_add(text.strip(), state, draft_pillars)
@@ -179,6 +182,23 @@ def _list(watchlist) -> str:
         flags = f" ({t['min_severity']}+" + (", muted)" if t.get("muted") else ")")
         lines.append(f"{t['ticker']}{flags}")
     return "Watching: " + ", ".join(lines)
+
+
+def _show(raw_ticker: str, watchlist) -> str:
+    """Full thesis for one watched ticker."""
+    ticker = raw_ticker.upper()
+    entry = next((t for t in watchlist.get("tickers", []) if t["ticker"] == ticker), None)
+    if entry is None:
+        return f"{ticker} is not on the watchlist."
+    lines = [
+        f"{entry['ticker']} — {entry.get('company', '')}",
+        f"CIK {entry['cik']} · alerts at {entry.get('min_severity', config.DEFAULT_MIN_SEVERITY)}+"
+        + (" · MUTED" if entry.get("muted") else ""),
+    ]
+    for i, p in enumerate(entry.get("pillars", []), 1):
+        lines.append(f"{i}. {p['id']} — {p['claim']}")
+        lines.append(f"   breaks: {p['breaks_if']}")
+    return "\n".join(lines)
 
 
 def _set_muted(raw_ticker: str, watchlist, *, muted: bool) -> str:

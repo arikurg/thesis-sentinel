@@ -34,3 +34,24 @@ def test_pending_with_nothing_held():
     state = {"seen_accessions": {}, "sent_today": {}, "pending_add": None,
              "last_poll_utc": None, "day": None}
     assert _send("pending", state, []) == "Nothing pending."
+
+
+def test_show_prints_full_thesis():
+    watchlist = {"tickers": [{
+        "ticker": "TSLA", "company": "Tesla, Inc.", "cik": "0001318605",
+        "min_severity": "minor", "pillars": DRAFT,
+    }]}
+    state = {"seen_accessions": {}, "sent_today": {}, "pending_add": None,
+             "last_poll_utc": None, "day": None}
+    reply = handle_inbound("show tsla", state=state, watchlist=watchlist,
+                           ticker_map=TICKER_MAP, draft_pillars=None,
+                           save=lambda s, w: None)
+    assert "TSLA — Tesla, Inc." in reply
+    assert "alerts at minor+" in reply
+    assert "1. demand — c" in reply
+    assert "breaks: b" in reply
+
+    reply = handle_inbound("show ZZZZ", state=state, watchlist=watchlist,
+                           ticker_map=TICKER_MAP, draft_pillars=None,
+                           save=lambda s, w: None)
+    assert reply == "ZZZZ is not on the watchlist."
